@@ -574,10 +574,10 @@ extension SAPlayer: SAPlayerDelegate {
     private func becomeDeviceAudioPlayer() {
         do {
             if #available(iOS 11.0, tvOS 11.0, *) {
-                // Use .mixWithOthers to allow audio to continue during notifications instead of pausing
-                try AVAudioSession.sharedInstance().setCategory(.playback, mode: .spokenAudio, policy: .longFormAudio, options: [.mixWithOthers])
+                // Use .default mode for music (not .spokenAudio which pauses for notifications)
+                try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, policy: .longFormAudio, options: [])
             } else {
-                try AVAudioSession.sharedInstance().setCategory(AVAudioSession.Category.playback, mode: AVAudioSession.Mode(rawValue: convertFromAVAudioSessionMode(AVAudioSession.Mode.default)), options: [.mixWithOthers, .allowAirPlay])
+                try AVAudioSession.sharedInstance().setCategory(AVAudioSession.Category.playback, mode: AVAudioSession.Mode(rawValue: convertFromAVAudioSessionMode(AVAudioSession.Mode.default)), options: .allowAirPlay)
             }
             try AVAudioSession.sharedInstance().setActive(true, options: .notifyOthersOnDeactivation)
         } catch {
