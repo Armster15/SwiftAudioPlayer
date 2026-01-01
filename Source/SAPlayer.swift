@@ -302,23 +302,20 @@ public class SAPlayer {
                 return
         }
 
-        // Switch over the interruption type.
+        // With .mixWithOthers, notifications won't trigger interruptions.
+        // This handler now only fires for real interruptions like phone calls.
         switch type {
 
         case .began:
-            // An interruption began. Update the UI as necessary.
+            // A real interruption (e.g., phone call) began. Pause playback.
             pause()
 
         case .ended:
-           // An interruption ended. Resume playback, if appropriate.
-
+            // Interruption ended. Resume playback if appropriate.
             guard let optionsValue = userInfo[AVAudioSessionInterruptionOptionKey] as? UInt else { return }
             let options = AVAudioSession.InterruptionOptions(rawValue: optionsValue)
             if options.contains(.shouldResume) {
-                // An interruption ended. Resume playback.
                 play()
-            } else {
-                // An interruption ended. Don't resume playback.
             }
 
         default: ()
@@ -577,9 +574,10 @@ extension SAPlayer: SAPlayerDelegate {
     private func becomeDeviceAudioPlayer() {
         do {
             if #available(iOS 11.0, tvOS 11.0, *) {
-                try AVAudioSession.sharedInstance().setCategory(.playback, mode: .spokenAudio, policy: .longFormAudio, options: [])
+                // Use .mixWithOthers to allow audio to continue during notifications instead of pausing
+                try AVAudioSession.sharedInstance().setCategory(.playback, mode: .spokenAudio, policy: .longFormAudio, options: [.mixWithOthers])
             } else {
-                try AVAudioSession.sharedInstance().setCategory(AVAudioSession.Category.playback, mode: AVAudioSession.Mode(rawValue: convertFromAVAudioSessionMode(AVAudioSession.Mode.default)), options: .allowAirPlay)
+                try AVAudioSession.sharedInstance().setCategory(AVAudioSession.Category.playback, mode: AVAudioSession.Mode(rawValue: convertFromAVAudioSessionMode(AVAudioSession.Mode.default)), options: [.mixWithOthers, .allowAirPlay])
             }
             try AVAudioSession.sharedInstance().setActive(true, options: .notifyOthersOnDeactivation)
         } catch {
