@@ -90,15 +90,23 @@ public class SAPlayer {
     */
     public var volume: Float? {
         get {
-            return player?.playerNode.volume
+            return player?.volume
         }
         
         set {
             guard let value = newValue else { return }
             guard value >= 0.0 && value <= 1.0 else { return }
             
-            player?.playerNode.volume = value
+            player?.volume = value
         }
+    }
+
+    /// Whether transport and volume are controlled by a buffered output device.
+    public var usesBufferedOutput: Bool { player?.usesBufferedOutput ?? false }
+
+    /// Call after editing audio modifiers directly to keep buffered playback timing in sync.
+    public func audioModifiersDidChange() {
+        player?.audioModifiersDidChange()
     }
     
     /**
@@ -131,6 +139,7 @@ public class SAPlayer {
             guard let node = audioModifiers.first as? AVAudioUnitTimePitch else { return }
             
             node.rate = value
+            audioModifiersDidChange()
             playbackRateOfAudioChanged(rate: value)
         }
     }
