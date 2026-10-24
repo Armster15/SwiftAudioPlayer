@@ -45,6 +45,13 @@ class AudioEngine: AudioEngineProtocol {
     
     var engine: AVAudioEngine!
     var playerNode: AVAudioPlayerNode!
+    var usesBufferedOutput: Bool { false }
+    var volume: Float {
+        get { playerNode.volume }
+        set { playerNode.volume = newValue }
+    }
+
+    func audioModifiersDidChange() {}
     private var engineInvalidated: Bool = false
     
     static let defaultEngineAudioFormat: AVAudioFormat = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 44100, channels: 2, interleaved: false)!
