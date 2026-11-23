@@ -29,6 +29,7 @@ import AVFoundation
 class AudioDiskEngine: AudioEngine {
     private var bufferedOutput: BufferedAudioOutput?
     private var routeObserver: NSObjectProtocol?
+    private var configurationObserver: NSObjectProtocol?
 
     override var usesBufferedOutput: Bool { bufferedOutput != nil }
     override var volume: Float {
@@ -95,18 +96,27 @@ class AudioDiskEngine: AudioEngine {
         configureOutput()
         routeObserver = NotificationCenter.default.addObserver(
             forName: AVAudioSession.routeChangeNotification, object: nil, queue: .main
-        ) { [weak self] notification in
-            guard let self = self else { return }
-            if let reason = notification.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt,
-               reason == AVAudioSession.RouteChangeReason.oldDeviceUnavailable.rawValue {
-                self.pause()
-            }
-            self.configureOutput()
+        ) { [weak self] _ in
+            self?.configureOutput()
+        }
+        configurationObserver = NotificationCenter.default.addObserver(
+            forName: .AVAudioEngineConfigurationChange, object: engine, queue: .main
+        ) { [weak self] _ in
+            guard let self = self, !self.usesBufferedOutput else { return }
+            // Hardware changes stop the engine and clear scheduled audio. Keep the
+            // last reported position; the player node's timeline has already reset.
+            let position = max(0, self.needle)
+            let wasPlaying = self.state == .resumed
+            self.pause()
+            self.seek(toNeedle: position)
+            if wasPlaying { self.play() }
+            self.updateIsPlaying()
         }
     }
 
     deinit {
         if let observer = routeObserver { NotificationCenter.default.removeObserver(observer) }
+        if let observer = configurationObserver { NotificationCenter.default.removeObserver(observer) }
         bufferedOutput?.invalidate()
         engine.stop()
     }
@@ -306,6 +316,10 @@ class AudioDiskEngine: AudioEngine {
         if let observer = routeObserver {
             NotificationCenter.default.removeObserver(observer)
             routeObserver = nil
+        }
+        if let observer = configurationObserver {
+            NotificationCenter.default.removeObserver(observer)
+            configurationObserver = nil
         }
         bufferedOutput?.invalidate()
         bufferedOutput = nil
